@@ -317,10 +317,8 @@ Five small aligned charts: **HDB 3-room**, **HDB 4-room**, **HDB 5-room**, **Con
 <div class="date-range-controls">
   <label for="startYear2">Start Year:</label>
   <input type="number" id="startYear2" min="1980" max="2024" value="1980">
-  
   <label for="endYear2">End Year:</label>
   <input type="number" id="endYear2" min="1980" max="2024" value="2024">
-  
   <button onclick="updateChartRange2()">Update Range</button>
 </div>
 
@@ -339,13 +337,13 @@ make_opt_a <- function(series_name, title, color) {
       title = list(text = title, font = list(size = 12)),
       xaxis = list(range = c(min_year, max_year), dtick = 5),
       yaxis = list(title = "%", tickformat = ".1f"),
-      margin = list(t = 36, b = 32, l = 44, r = 20),
+      margin = list(t = 36, b = 32, l = 44, r = 80),
       showlegend = FALSE,
       annotations = list(
         list(
           x = last_pt$Year, y = last_pt$Percent, text = title,
           showarrow = FALSE, xanchor = "left", xref = "x", yref = "y",
-          font = list(size = 10, color = color)
+          font = list(size = 10, color = color), cliponaxis = FALSE
         )
       )
     )
@@ -353,7 +351,7 @@ make_opt_a <- function(series_name, title, color) {
 plist_a <- lapply(1:5, function(i) make_opt_a(opt_a_series[i], opt_a_titles[i], opt_a_colors[i]))
 p2 <- subplot(plist_a, nrows = 5, margin = 0.02, shareX = TRUE, shareY = TRUE) %>%
   layout(
-    title = list(text = "(Improved Chart) — Small multiples (same x, same y %)", x = 0.5, font = list(size = 14)),
+    title = list(text = "(Improved Chart) Small multiples (same x, same y %)", x = 0.5, font = list(size = 14)),
     plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)"
   ) %>%
   config(displayModeBar = FALSE, displaylogo = FALSE) %>%
@@ -365,9 +363,11 @@ p2 <- subplot(plist_a, nrows = 5, margin = 0.02, shareX = TRUE, shareY = TRUE) %
         if (startYear > endYear) { alert('Start year must be less than or equal to end year'); return; }
         if (startYear < 1980 || endYear > 2024) { alert('Year range must be between 1980 and 2024'); return; }
         var dtick = (endYear - startYear) <= 5 ? 1 : ((endYear - startYear) <= 10 ? 2 : 5);
-        var update = { 'xaxis.range': [startYear, endYear], 'xaxis.dtick': dtick };
-        for (var i = 2; i <= 5; i++) { update['xaxis' + i + '.range'] = [startYear, endYear]; update['xaxis' + i + '.dtick'] = dtick; }
-        Plotly.relayout(el.id, update);
+        Plotly.relayout(el.id, {
+          'xaxis.autorange': false,
+          'xaxis.range': [startYear, endYear],
+          'xaxis.dtick': dtick
+        });
       };
     }
   ")
@@ -379,35 +379,12 @@ p2
 <script>
 // Allow Enter key to trigger update
 document.addEventListener('DOMContentLoaded', function() {
-  var startInput = document.getElementById('startYear');
-  var endInput = document.getElementById('endYear');
-  
-  if (startInput) {
-    startInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        if (window.updateChartRange) {
-          window.updateChartRange();
-        }
-      }
-    });
-  }
-  
-  if (endInput) {
-    endInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        if (window.updateChartRange) {
-          window.updateChartRange();
-        }
-      }
-    });
-  }
-
   var startInput2 = document.getElementById('startYear2');
   var endInput2 = document.getElementById('endYear2');
   
   if (startInput2) {
     startInput2.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter' && window.updateChartRange2) {
+      if (e.key === 'Enter' && typeof window.updateChartRange2 === 'function') {
         window.updateChartRange2();
       }
     });
@@ -415,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   if (endInput2) {
     endInput2.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter' && window.updateChartRange2) {
+      if (e.key === 'Enter' && typeof window.updateChartRange2 === 'function') {
         window.updateChartRange2();
       }
     });
@@ -528,12 +505,6 @@ Additionally, as we refer to the indicator on population growth (per cent), we o
 
 ![SingStat Table M810651 Part 4](images/m810001_part4.png)
 
-## Supply-Side Structural Changes {#sec-data-supply}
-
-A factor not captured by any demand-side analysis is the progressive reduction in HDB flat floor areas over successive building generations. As illustrated in the figure below, the average size of newly built HDB flats has declined substantially since the 1980s and 1990s.
-
-![Supply-side structural changes — HDB flat sizes](images/supply_side_structural_changes.png)
-
 ## Finance Growth {#sec-data-finance}
 
 **Rise in Gross Monthly Income (from employment)**  
@@ -543,7 +514,7 @@ Labour Force and income statistics are available from the [MOM Labour Force Dash
 
 ### Project data files {#sec-data-files}
 
-The report uses the following CSV files: `data.csv` (dwelling-type counts), `Resident Household by household.csv`, `Living Alone Married without Ch.csv`, `Composition of Non-Residents.csv`, and `Gross monthly income.csv`. Percentages in the charts are computed relative to total resident households for each year. Full citations: Singapore Department of Statistics (SingStat), HDB sample household survey, MOM Labour Force Report.
+The report uses the following CSV files: `data.csv` (dwelling-type counts), `Resident Household by household.csv`, `Living Alone Married without Ch.csv`, `Composition of Non-Residents.csv`, `hdb_resale_prices.csv`, and `Gross monthly income.csv`. Percentages in the charts are computed relative to total resident households for each year. Full citations: Singapore Department of Statistics (SingStat), HDB sample household survey, Housing & Development Board (HDB) Resale Flat Prices dataset, and MOM Labour Force Report.
 
 # Data Engineering Pipeline {#sec-data-workflow}
 
@@ -559,6 +530,7 @@ Data are pulled from four distinct **data silos**, each mapped to a common key: 
 | **B (Demographics)** | SingStat M810371 (Household Size) & M810651 (Living Arrangements) | Extract **"1-person"** and **"Married w/o Children"** as new feature columns. |
 | **C (Population)** | SingStat M810001 (Residency Status) | Calculate the **Non-Resident Ratio** (Non-Residents / Total Population). |
 | **D (Economics)** | MOM Labour Force Report 2025 | Extract **Median Monthly Income** and deflate using CPI to get **Real Income Growth**. |
+| **E (Supply-Side)** | data.gov.sg HDB Resale Flat Prices (1990–2026) | Compute **average floor area** by lease year and **small-flat share** of the supply mix. |
 
 ## Phase 2: Data Cleaning & Normalization (The "Long" Pivot) {#sec-phase2}
 
@@ -774,7 +746,7 @@ knitr::kable(head(master_table, 5), caption = "Master table (first 5 years)")
 knitr::kable(tail(master_table, 5), caption = "Master table (last 5 years)")
 ```
 
-The pipeline produces a **Master Analytical Table** (`master_table`) with one row per **Year** and columns from all silos plus engineered features. All five project CSVs are used: **Silo A** from `data.csv`; **Silo B** from `Resident Household by household.csv` (1-/2-person shares, shrinkage index, average household size) and `Living Alone Married without Ch.csv` (living alone and married-without-children counts, interpolated to full year range); **Silo C** from `Composition of Non-Residents.csv` (non-resident ratio); **Silo D** from `Gross monthly income.csv` (2025 median income; other years use an index for pipeline continuity). Condo price index remains synthetic (no CSV in project).
+The pipeline produces a **Master Analytical Table** (`master_table`) with one row per **Year** and columns from all silos plus engineered features. All five project CSVs are used: **Silo A** from `data.csv`; **Silo B** from `Resident Household by household.csv` (1-/2-person shares, shrinkage index, average household size) and `Living Alone Married without Ch.csv` (living alone and married-without-children counts, interpolated to full year range); **Silo C** from `Composition of Non-Residents.csv` (non-resident ratio); **Silo D** from `Gross monthly income.csv` (2025 median income; other years use an index for pipeline continuity). Condo price index remains synthetic (no CSV in project); **Silo E** from `hdb_resale_prices.csv` (average floor area by lease year, floor-area index, supply-compression flag, small-flat supply share). Condo price index remains synthetic.
 
 ---
 
@@ -795,6 +767,7 @@ The following **ETL summary** maps the same pipeline to Extract / Transform / Lo
 
 - **Phase 2:** Pivot all wide silos to long (`Year`, series identifier, `Value`). Standardise series names (`trimws()`, recode to canonical labels). Compute **housing shares** (count / Resident Households × 100). Use `interpolate_gaps()` for sources with missing years (e.g. Living Alone). Exclude *Total HDB Dwellings* and *Resident Households* from dwelling-type shares.
 - **Phase 3:** **Shrinkage index** from Silo B (1- + 2-person) / total; **married_no_children_pct** from Living Alone file counts / total households. **NR impact:** annual % change of non-resident ratio; flag **high_external_demand** when growth > 3%. **Affordability ratio:** median_income_index / condo_price_index.
+**Floor-area index** from Silo E: mean `floor_area_sqm` per lease year, indexed to earliest year (= 100); flag **supply_compression** when year-over-year decline > 2%. **Small-flat supply share:** proportion of 1-, 2-, and 3-ROOM transactions per lease year.
 
 ## Load / Consume {#sec-workflow-load}
 
@@ -807,7 +780,7 @@ The following **ETL summary** maps the same pipeline to Extract / Transform / Lo
 
 - **Extract:** Type handling for mixed year columns (e.g. Silo C `as.character` before pivot); parsing "na" and commas in CSVs to numeric where needed.
 - **Transform:** Dropping `NA` in `Value`; `trimws()` on series names; shares from a single denominator per year; interpolation for sparse years.
-- **Join:** All silos aligned on **Year**; missing years in one source yield NA in that column (e.g. income only 2025).
+- **Join:** All silos aligned on **Year**; missing years in one source yield NA in that column (e.g. income only 2025). Silo E joins on `lease_commence_date` as **Year**; lease years outside the dwelling-share range will carry NA for housing columns.
 
 # Team Work Distribution {#sec-work-distribution}
 
@@ -827,3 +800,6 @@ This report showed an original multivariate time-series chart of dwelling-type p
 - [MOM — Labour Force in Singapore 2025 (Report)](https://stats.mom.gov.sg/Pages/Labour-Force-In-Singapore-2025.aspx)
 - Singapore Department of Statistics, *Population Trends 2025* (PDF).
 - SingStat tables: M810351 (Resident Households by Dwelling), M810371 (Household Size), M810651 (Living Arrangements), M810001 (Residency / Composition of Non-Residents).
+- Housing & Development Board. (2021). *Resale Flat Prices* [Dataset collection]. data.gov.sg. <https://data.gov.sg/collections/189/view>
+- [Housing Map — HDB flat size analysis](https://www.housingmap.sg/hdb-flat-size-analysis/)
+- [PropertyGuru — Are condos and HDB flats getting smaller?](https://www.propertyguru.com.sg/property-guides/are-hdb-flats-condos-getting-smaller-48893)
