@@ -273,6 +273,7 @@ p
 ```
 
 The story this chart tells is a gradual structural change in Singapore's housing composition. The overall proportion of resident households in HDB flats declined from 80.4% in 2014 to 77.4% in 2024, while condominium and apartment living rose from 13.5% to 17.7% over the same period. This shift appears to be driven less by a reduction in public housing supply and more by demographic changes, particularly shrinking household sizes and changing living arrangements, as documented in the Singapore Department of Statistics Population Trends 2025 report.
+</div>
 
 ```{r run-pipeline, include: false}
 # Run pipeline early so master_table is available for the improved chart (Phases 1-4).
@@ -395,7 +396,7 @@ master_schema <- tibble(
 
 # Improved Chart (Small Multiples) {#sec-small-multiples}
 
-Five panels: dwelling shares **HDB 3-room**, **HDB 4-room**, **HDB 5-room**, **Condo** (Silo A), then a **combined context chart** (1+2 person % and Non-Resident % with direct labels — Silos B & C). Condo sits directly above the combined chart. Same x-axis (Year) across all panels. Blue = Public (HDB); warm = Private. Use the date filter below to set the range.
+Five panels: dwelling shares **HDB 3-room**, **HDB 4-room**, **HDB 5-room**, **Condo** (Silo A), then a **combined context chart** (1 & 2 person % and Non-Resident % with direct labels — Silos B & C). Condo sits directly above the combined chart. Same x-axis (Year) across all panels. Blue = Public (HDB); warm = Private. Use the date filter below to set the range.
 
 <div class="chart-container" style="margin-top: 2rem;">
 <div class="date-range-controls">
@@ -407,7 +408,7 @@ Five panels: dwelling shares **HDB 3-room**, **HDB 4-room**, **HDB 5-room**, **C
 </div>
 
 ```{r improved-chart}
-# 4 dwelling panels (Silo A) + 1 combined context panel from master_table (Silos B & C). Landed excluded.
+# 4 dwelling panels (Silo A) with 1 combined context panel from master_table (Silos B & C). Landed excluded.
 opt_a_series <- c("HDB 3-Room Flats", "HDB 4-Room Flats", "HDB 5-Room And Executive Flats", "Condominiums And Other Apartments", "Landed Properties")
 opt_a_titles <- c("HDB 3-room", "HDB 4-room", "HDB 5-room", "Condo", "Landed")
 opt_a_colors <- c("#2171b5", "#4292c6", "#6baed6", "#c6531a", "#e6864a")
@@ -422,7 +423,7 @@ make_opt_a <- function(series_name, title, color) {
       title = list(text = title, font = list(size = 12)),
       xaxis = list(range = c(min_year, max_year), dtick = 5),
       yaxis = list(title = "%", tickformat = ".1f"),
-      margin = list(t = 36, b = 32, l = 44, r = 16),  # reduced right margin — label goes inward
+      margin = list(t = 36, b = 32, l = 44, r = 16),
       showlegend = FALSE,
       annotations = list(
         list(
@@ -435,14 +436,14 @@ make_opt_a <- function(series_name, title, color) {
           xref       = "x",
           yref       = "y",
           font   = list(size = 10, color = color),
-          cliponaxis = TRUE
+          cliponaxis = FALSE
         )
       )
     )
 }
 plist_dwelling <- lapply(1:5, function(i) make_opt_a(opt_a_series[i], opt_a_titles[i], opt_a_colors[i]))
 
-# Combined context chart: 1+2 person % (Silo B) and Non-resident % (Silo C) with direct labels
+# Combined context chart: 1 & 2 person % (Silo B) and Non-resident % (Silo C) with direct labels
 mt_ctx <- master_table %>% filter(!is.na(shrinkage_index) | !is.na(non_resident_ratio))
 last_shrink <- mt_ctx %>% filter(!is.na(shrinkage_index)) %>% slice_max(Year, n = 1) %>% slice(1)
 last_nr     <- mt_ctx %>% filter(!is.na(non_resident_ratio)) %>% slice_max(Year, n = 1) %>% slice(1)
@@ -451,7 +452,7 @@ p_combined <- plot_ly(mt_ctx) %>%
     type = "scatter", mode = "lines",
     name = "1- & 2-person households (%)",
     line = list(width = 2, color = "#4a90a4"),
-    hovertemplate = "<b>1+2 person %</b><br>Year: %{x}<br>% of households: %{y:.1f}%<extra></extra>"
+    hovertemplate = "<b>1 & 2 person %</b><br>Year: %{x}<br>% of households: %{y:.1f}%<extra></extra>"
   ) %>%
   add_trace(
     x = ~Year, y = ~(non_resident_ratio * 100),
@@ -461,7 +462,7 @@ p_combined <- plot_ly(mt_ctx) %>%
     hovertemplate = "<b>Non-resident %</b><br>Year: %{x}<br>% of population: %{y:.1f}%<extra></extra>"
   ) %>%
   layout(
-    title  = list(text = "Context: 1+2 person households (%) & Non-residents (% pop.)", font = list(size = 12)),
+    title  = list(text = "Context: 1 & 2 person households (%) & Non-residents (% pop.)", font = list(size = 12)),
     xaxis  = list(range = c(min_year, max_year), dtick = 5),
     yaxis  = list(title = "%", tickformat = ".1f"),
     margin = list(t = 36, b = 32, l = 44, r = 16),
@@ -469,11 +470,11 @@ p_combined <- plot_ly(mt_ctx) %>%
     annotations = list(
       list(
         x = last_shrink$Year, y = last_shrink$shrinkage_index * 100,
-        text = "1+2 person",
+        text = "1 & 2 person",
         showarrow = FALSE, xanchor = "right", yanchor = "bottom",
         xref = "x", yref = "y",
         font = list(size = 10, color = "#4a90a4"),
-        cliponaxis = TRUE
+        cliponaxis = FALSE
       ),
       list(
         x = last_nr$Year, y = last_nr$non_resident_ratio * 100,
@@ -481,19 +482,19 @@ p_combined <- plot_ly(mt_ctx) %>%
         showarrow = FALSE, xanchor = "right", yanchor = "top",
         xref = "x", yref = "y",
         font = list(size = 10, color = "#c6531a"),
-        cliponaxis = TRUE
+        cliponaxis = FALSE
       )
     )
   )
 
 # Order: HDB 3, HDB 4, HDB 5, Condo, [Combined] — Landed removed
 plist_all <- c(
-  plist_dwelling[1:4],           # HDB 3-room, HDB 4-room, HDB 5-room, Condo
-  list(p_combined)              # Combined 1+2 person & non-resident (direct labels)
+  plist_dwelling[1:4],
+  list(p_combined)
 )
 p2 <- subplot(plist_all, nrows = 5, margin = 0.02, shareX = TRUE, shareY = FALSE) %>%
   layout(
-    title = list(text = "(Improved Chart) Dwelling shares with Condo above context (same x)", x = 0.5, font = list(size = 14)),
+    title = list(text = "Improved Chart: Dwelling shares with Condo above context (Same x-axis)", x = 0.5, font = list(size = 14)),
     plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)"
   ) %>%
   config(displayModeBar = FALSE, displaylogo = FALSE) %>%
@@ -501,15 +502,48 @@ p2 <- subplot(plist_all, nrows = 5, margin = 0.02, shareX = TRUE, shareY = FALSE
     function(el, x) {
       window.updateChartRange2 = function() {
         var startYear = parseInt(document.getElementById('startYear2').value);
-        var endYear = parseInt(document.getElementById('endYear2').value);
+        var endYear   = parseInt(document.getElementById('endYear2').value);
         if (startYear > endYear) { alert('Start year must be less than or equal to end year'); return; }
         if (startYear < 1980 || endYear > 2024) { alert('Year range must be between 1980 and 2024'); return; }
+
         var dtick = (endYear - startYear) <= 5 ? 1 : ((endYear - startYear) <= 10 ? 2 : 5);
+
+        // Update x-axis range (shared axis)
         Plotly.relayout(el.id, {
           'xaxis.autorange': false,
           'xaxis.range': [startYear, endYear],
           'xaxis.dtick': dtick
         });
+
+        // Move each annotation to the last visible data point within the new range
+        var layout = el._fullLayout;
+        var newAnnotations = JSON.parse(JSON.stringify(el.layout.annotations || []));
+
+        el.data.forEach(function(trace, traceIdx) {
+          var xs = trace.x;
+          var ys = trace.y;
+          if (!xs || !ys) return;
+
+          // Find the rightmost x value <= endYear
+          var bestX = null, bestY = null;
+          for (var i = 0; i < xs.length; i++) {
+            if (xs[i] <= endYear && xs[i] >= startYear) {
+              if (bestX === null || xs[i] > bestX) {
+                bestX = xs[i];
+                bestY = ys[i];
+              }
+            }
+          }
+          if (bestX === null) return;
+
+          // Each dwelling trace has one annotation (index matches traceIdx for first 5 traces)
+          if (newAnnotations[traceIdx] !== undefined) {
+            newAnnotations[traceIdx].x = bestX;
+            newAnnotations[traceIdx].y = bestY;
+          }
+        });
+
+        Plotly.relayout(el.id, { annotations: newAnnotations });
       };
     }
   ")
@@ -585,16 +619,16 @@ The chart provides no horizontal or vertical gridlines, making it difficult for 
 The **Improved Chart (Small Multiples)** in this report implements the following improvements in response to the weaknesses of the original visualisation:
 
 **Small multiples and combined context panel**  
-Instead of plotting all six dwelling categories in a single chart, the improved chart uses five panels: four for dwelling shares (HDB 3-room, HDB 4-room, HDB 5-room, Condo)—one series per panel—and one combined context chart showing 1+2 person households (%) and Non-Resident (% of population), with Condo placed directly above the combined chart. Each panel shares the same x-axis (Year) and uses percent on the y-axis where relevant, so trends can be compared across panels without overlapping lines. Landed properties are omitted to keep the focus on the main dwelling shift and context. This removes visual clutter and makes it easier to trace any single category over the full time span (Tufte's layering and separation).
+Instead of plotting all six dwelling categories in a single chart, the improved chart uses five panels: four for dwelling shares (HDB 3-room, HDB 4-room, HDB 5-room, Condo)—one series per panel—and one combined context chart showing 1 & 2 person households (%) and Non-Resident (% of population), with Condo placed directly above the combined chart. Each panel shares the same x-axis (Year) and uses percent on the y-axis where relevant, so trends can be compared across panels without overlapping lines. Landed properties are omitted to keep the focus on the main dwelling shift and context. This removes visual clutter and makes it easier to trace any single category over the full time span (Tufte's layering and separation).
 
 **Simplified line styles and coordinated colour palette**  
-All series use solid lines only (no dotted or dashed patterns), reducing the decoding effort that the original chart required. Dwelling types are differentiated by colour: shades of blue for public housing (HDB 3-, 4-, and 5-room) and warm colours (orange) for private housing (Condo). The combined context chart uses teal for 1+2 person % and orange for Non-Resident %. This improves distinguishability for screen and print and supports better accessibility than the original monochrome palette with pattern encoding.
+All series use solid lines only (no dotted or dashed patterns), reducing the decoding effort that the original chart required. Dwelling types are differentiated by colour: shades of blue for public housing (HDB 3-, 4-, and 5-room) and warm colours (orange) for private housing (Condo). The combined context chart uses teal for 1 & 2 person % and orange for Non-Resident %. This improves distinguishability for screen and print and supports better accessibility than the original monochrome palette with pattern encoding.
 
 **Direct labelling (no separate legend)**  
-Each dwelling panel has the series name (e.g. "HDB 3-room", "Condo") annotated directly at the end of the line. The combined context panel uses direct labels "1+2 person" and "Non-Resident" at the end of each line, so the viewer does not need to cross-reference a legend. This reduces cognitive load and aligns with Tufte's recommendation to place labels on or adjacent to the data they describe.
+Each dwelling panel has the series name (e.g. "HDB 3-room", "Condo") annotated directly at the end of the line. The combined context panel uses direct labels "1 & 2 person" and "Non-Resident" at the end of each line, so the viewer does not need to cross-reference a legend. This reduces cognitive load and aligns with Tufte's recommendation to place labels on or adjacent to the data they describe.
 
 **Interactive date-range filter**  
-Start Year and End Year controls (with an "Update Range" button and Enter-key support) allow the user to focus on a chosen time window (e.g. 1995–2005 or 2010–2024). Narrowing the range makes it easier to read values and compare series without relying on gridlines, and the same filter applies across all five panels (four dwelling + one combined context) so comparison remains consistent.
+Start Year and End Year controls (with an "Update Range" button and Enter-key support) allow the user to focus on a chosen time window (e.g. 1995–2005 or 2010–2024). Narrowing the range makes it easier to read values and compare series without relying on gridlines, and the same filter applies across all five panels (four dwelling with one combined context) so comparison remains consistent.
 
 **Contextual annotations**  
 Contextual annotations (e.g. light vertical event markers or short text for policy or supply milestones) could be added to explain *why* certain trends occur—for example, why the HDB 3-room share fell sharply in the 90s. See [HDB: Design through the decades](https://www.hdb.gov.sg/about-us/history/design-through-the-decades) for candidate milestones.
@@ -785,7 +819,7 @@ silo_d <- silo_d %>% mutate(median_income_index = if_else(is.na(median_income_in
 - **HDB survey gap:** HDB surveys (e.g. 15.6% one-person home stat) are **periodic** (e.g. 2018, 2023). For years in between, use **linear interpolation** to estimate values, or **carry-forward** logic to maintain a continuous series.
 
 ```{r pipeline-phase2, echo=TRUE}
-# ========== Phase 2: Data Cleaning & Normalization (Long Pivot + Standardize) ==========
+# ========== Phase 2: Data Cleaning & Normalization (Long Pivot & Standardisation) ==========
 
 # Pivot Silo A to long; standardize series names
 series_std <- c(
@@ -943,15 +977,15 @@ The following **ETL summary** maps the same pipeline to Extract / Transform / Lo
 - **Transform:** Dropping `NA` in `Value`; `trimws()` on series names; shares from a single denominator per year; interpolation for sparse years.
 - **Join:** All silos aligned on **Year**; missing years in one source yield NA in that column (e.g. income only 2025).
 
-# Team Work Distribution {#sec-work-distribution}
+# Planned Work Distribution {#sec-work-distribution}
 
-| Admin Number | Name | Task |
+| Admin Number | Name | Responsibilities |
 |------|--------|--------|
-| 2402319 | SIM EN QI | • Data Sources<br> |
-| 2402844 | CORVAN CHUA | • Improved Chart & Data Integration<br>• Created Draft Report<br> |
-| 2502218 | SOH JIA HUI (SU JIAHUI) | • <br>• <br>|
-| 2501484 | AVRIL LEONG KE EN | • <br>• <br> |
-| 2501222 | KOK YI HENG | • |
+| 2402319 | SIM EN QI | • Data Sources (Population Dynamics)<br>• Assist in preparing RevealJS slides |
+| 2402844 | CORVAN CHUA | • Improved Chart & Data Integration<br> • Assist in preparing RevealJS slides<br> |
+| 2502218 | SOH JIA HUI (SU JIAHUI) | • Analytical Design Efficiency<br>• Assist in preparing RevealJS slides<br> |
+| 2501484 | AVRIL LEONG KE EN | • Data Sources (Financial Growth)<br>• Assist in preparing RevealJS slides<br> |
+| 2501222 | KOK YI HENG | • Documentation |
 
 # Summary {#sec-summary}
 
