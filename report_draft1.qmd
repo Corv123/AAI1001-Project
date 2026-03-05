@@ -3,7 +3,7 @@ title: "Proportion of Resident Households by Type of Dwellings"
 subtitle: "AAI1001 — Data Engineering and Visualization<br>Project Proposal Submission"
 author:
   name: "Lab P1 - Group 18"
-date: "2026-03-5"
+date: "2026-03-05"
 date-format: "dddd MMM DD, YYYY"
 
 format:
@@ -62,7 +62,7 @@ The original visualization is a multi-series time-series line chart displaying t
 ### Time and Population {#sec-time-population}
 
 - **Year:** The specific calendar year of the record.
-- **Resident Households:** The total percentage of households living in Singapore.
+- **Resident Households:** The total number (count) of resident households living in Singapore (used as the denominator for percentage shares).
 
 ### Housing Breakdown {#sec-housing-breakdown}
 
@@ -277,9 +277,128 @@ p
 The story this chart tells is one of gradual structural change in Singapore's housing composition. The overall proportion of resident households in HDB flats declined from 80.4% in 2014 to 77.4% in 2024, while condominium and apartment living rose from 13.5% to 17.7% over the same period. This shift appears to be driven less by a reduction in public housing supply and more by demographic changes, particularly shrinking household sizes and changing living arrangements, as documented in the Singapore Department of Statistics Population Trends 2025 report.
 </div>
 
+```{r run-pipeline, include: false}
+# Run pipeline early so master_table is available for the improved chart (Phases 1-4).
+# Silo A
+silo_a_wide <- read.csv("data.csv", check.names = FALSE)
+year_cols <- setdiff(names(silo_a_wide), "Data Series")
+years <- as.numeric(year_cols)
+# Silo B
+hh_wide <- read.csv("Resident Household by household.csv", check.names = FALSE)
+hh_year_cols <- setdiff(names(hh_wide), "Data Series")
+hh_long <- hh_wide %>%
+  mutate(Series = trimws(`Data Series`)) %>%
+  pivot_longer(cols = all_of(hh_year_cols), names_to = "Year", values_to = "Value") %>%
+  mutate(Year = as.numeric(Year), Value = as.numeric(gsub(",", "", as.character(Value))))
+hh_total   <- hh_long %>% filter(Series == "Resident Households (Number)") %>% select(Year, total_hh = Value)
+hh_1p      <- hh_long %>% filter(Series == "1-Person Households (Number)") %>% select(Year, one_person = Value)
+hh_2p      <- hh_long %>% filter(Series == "2-Person Households (Number)") %>% select(Year, two_person = Value)
+hh_avg_size<- hh_long %>% filter(Series == "Average Household Size Among Resident Households (Persons)") %>% select(Year, avg_household_size = Value)
+silo_b_from_hh <- hh_total %>%
+  left_join(hh_1p, by = "Year") %>% left_join(hh_2p, by = "Year") %>%
+  mutate(
+    one_person_household_pct = if_else(total_hh > 0, 100 * one_person / total_hh, NA_real_),
+    two_person_household_pct = if_else(total_hh > 0, 100 * two_person / total_hh, NA_real_),
+    shrinkage_index = if_else(total_hh > 0, (one_person + two_person) / total_hh, NA_real_)
+  ) %>%
+  left_join(hh_avg_size, by = "Year") %>%
+  select(Year, one_person_household_pct, two_person_household_pct, shrinkage_index, avg_household_size)
+alone_wide <- read.csv("Living Alone Married without Ch.csv", check.names = FALSE)
+alone_wide <- alone_wide %>% slice(2:7)
+alone_year_cols <- setdiff(names(alone_wide), "Data Series")
+alone_long <- alone_wide %>%
+  mutate(Series = trimws(`Data Series`)) %>%
+  pivot_longer(cols = all_of(alone_year_cols), names_to = "Year", values_to = "Value") %>%
+  mutate(Year = as.numeric(Year), Value = as.numeric(as.character(Value)))
+living_alone   <- alone_long %>% filter(Series == "Living Alone") %>% select(Year, living_alone = Value)
+married_no_ch  <- alone_long %>% filter(Series == "Married Couple-Based Without Children") %>% select(Year, married_no_children = Value)
+y_range <- min(silo_b_from_hh$Year, na.rm = TRUE):max(silo_b_from_hh$Year, na.rm = TRUE)
+living_alone_full   <- approx(living_alone$Year, living_alone$living_alone,   xout = y_range, rule = 2) %>% as_tibble() %>% rename(Year = x, living_alone = y)
+married_no_ch_full  <- approx(married_no_ch$Year, married_no_ch$married_no_children, xout = y_range, rule = 2) %>% as_tibble() %>% rename(Year = x, married_no_children = y)
+silo_b <- silo_b_from_hh %>%
+  full_join(living_alone_full, by = "Year") %>%
+  full_join(married_no_ch_full, by = "Year") %>%
+  arrange(Year) %>%
+  filter(Year %in% years)
+# Silo C
+pop_wide <- read.csv("Composition of Non-Residents.csv", check.names = FALSE)
+pop_year_cols <- setdiff(names(pop_wide), "Data Series")
+pop_long <- pop_wide %>%
+  mutate(Series = trimws(`Data Series`), across(all_of(pop_year_cols), as.character)) %>%
+  pivot_longer(cols = all_of(pop_year_cols), names_to = "Year", values_to = "Value") %>%
+  mutate(Year = as.numeric(Year), Value = as.numeric(Value))
+total_pop   <- pop_long %>% filter(Series == "Total Population (Number)") %>% select(Year, total_pop = Value)
+non_res_pop <- pop_long %>% filter(Series == "Non-Resident Population (Number)") %>% select(Year, non_resident = Value)
+silo_c <- total_pop %>%
+  left_join(non_res_pop, by = "Year") %>%
+  mutate(non_resident_ratio = if_else(total_pop > 0 & !is.na(non_resident), non_resident / total_pop, NA_real_)) %>%
+  select(Year, non_resident_ratio) %>%
+  filter(Year %in% years)
+# Silo D
+inc_raw <- read.csv("Gross monthly income.csv", check.names = FALSE, comment.char = "")
+total_row <- which(inc_raw[[1]] == "Total")[1]
+if (is.na(total_row) || length(total_row) == 0) total_row <- 11L
+inc_vals <- suppressWarnings(as.numeric(gsub(",", "", unlist(inc_raw[total_row, 3:ncol(inc_raw)]))))
+median_2025 <- if (length(inc_vals) > 0 && !all(is.na(inc_vals))) inc_vals[1] else NA_real_
+silo_d <- tibble(Year = years) %>%
+  mutate(
+    median_income_nominal = if_else(Year == 2025, median_2025, NA_real_),
+    median_income_index   = if_else(Year == 2025 & !is.na(median_2025), 100, NA_real_),
+    condo_price_index    = 100 * exp(0.035 * (Year - 1990) / 10)
+  )
+silo_d <- silo_d %>% mutate(median_income_index = if_else(is.na(median_income_index), 100 * exp(0.03 * (Year - 1990) / 10), median_income_index))
+# Phase 2
+series_std <- c(
+  "Resident Households" = "Resident Households", "Total HDB Dwellings" = "Total HDB Dwellings",
+  "HDB 1- And 2-Room Flats" = "HDB 1- And 2-Room Flats", "HDB 3-Room Flats" = "HDB 3-Room Flats",
+  "HDB 4-Room Flats" = "HDB 4-Room Flats", "HDB 5-Room And Executive Flats" = "HDB 5-Room And Executive Flats",
+  "Condominiums And Other Apartments" = "Condominiums And Other Apartments", "Landed Properties" = "Landed Properties",
+  "Other Types Of Dwelling" = "Other Types Of Dwelling"
+)
+silo_a_long_pipe <- silo_a_wide %>%
+  pivot_longer(cols = all_of(year_cols), names_to = "Year", values_to = "Value") %>%
+  mutate(Year = as.numeric(Year), Series = trimws(`Data Series`), Series = recode(Series, !!!series_std)) %>%
+  filter(!is.na(Value))
+total_households_pipe <- silo_a_long_pipe %>% filter(Series == "Resident Households") %>% select(Year, Total = Value)
+housing_shares <- silo_a_long_pipe %>%
+  filter(Series != "Total HDB Dwellings") %>%
+  left_join(total_households_pipe, by = "Year") %>%
+  mutate(share_pct = (Value / Total) * 100) %>%
+  filter(Series != "Resident Households") %>%
+  select(Year, Series, share_pct)
+# Phase 3
+silo_b_eng <- silo_b %>%
+  left_join(total_households_pipe, by = "Year") %>%
+  mutate(married_no_children_pct = if_else(!is.na(Total) & Total > 0 & !is.na(married_no_children), 100 * married_no_children / Total, NA_real_))
+silo_c_eng <- silo_c %>%
+  arrange(Year) %>%
+  mutate(
+    nr_pct_change = (non_resident_ratio / lag(non_resident_ratio) - 1) * 100,
+    high_external_demand = replace_na(nr_pct_change > 3, FALSE)
+  )
+silo_d_eng <- silo_d %>% mutate(affordability_ratio = median_income_index / condo_price_index)
+# Phase 4
+housing_wide <- housing_shares %>%
+  filter(Series %in% c("HDB 3-Room Flats", "HDB 4-Room Flats", "HDB 5-Room And Executive Flats", "Condominiums And Other Apartments", "Landed Properties")) %>%
+  pivot_wider(names_from = Series, values_from = share_pct, names_repair = "unique")
+master_table <- Reduce(
+  function(x, y) left_join(x, y, by = "Year"),
+  list(
+    housing_wide,
+    silo_b_eng %>% select(Year, one_person_household_pct, two_person_household_pct, married_no_children_pct, shrinkage_index, avg_household_size),
+    silo_c_eng %>% select(Year, non_resident_ratio, nr_pct_change, high_external_demand),
+    silo_d_eng %>% select(Year, median_income_nominal, median_income_index, condo_price_index, affordability_ratio)
+  )
+)
+master_schema <- tibble(
+  Column = names(master_table),
+  Type = if_else(names(master_table) == "Year", "integer", "numeric")
+)
+```
+
 # Improved Chart (Small Multiples) {#sec-small-multiples}
 
-Five small aligned charts: **HDB 3-room**, **HDB 4-room**, **HDB 5-room**, **Condo**, **Landed**. Same x-axis (Year) and same y-axis (%). Blue tones = Public (HDB); warm tones = Private. Use the date filter below to set the range.
+Five panels: dwelling shares **HDB 3-room**, **HDB 4-room**, **HDB 5-room**, **Condo** (Silo A), then a **combined context chart** (1+2 person % and Non-Resident % with direct labels — Silos B & C). Condo sits directly above the combined chart. Same x-axis (Year) across all panels. Blue = Public (HDB); warm = Private. Use the date filter below to set the range.
 
 <div class="chart-container" style="margin-top: 2rem;">
 <div class="date-range-controls">
@@ -291,7 +410,7 @@ Five small aligned charts: **HDB 3-room**, **HDB 4-room**, **HDB 5-room**, **Con
 </div>
 
 ```{r improved-chart}
-# 5 small multiples — HDB 3, 4, 5-room, Condo, Landed. Same x, same y (%). Date filter applied.
+# 4 dwelling panels (Silo A) + 1 combined context panel from master_table (Silos B & C). Landed excluded.
 opt_a_series <- c("HDB 3-Room Flats", "HDB 4-Room Flats", "HDB 5-Room And Executive Flats", "Condominiums And Other Apartments", "Landed Properties")
 opt_a_titles <- c("HDB 3-room", "HDB 4-room", "HDB 5-room", "Condo", "Landed")
 opt_a_colors <- c("#2171b5", "#4292c6", "#6baed6", "#c6531a", "#e6864a")
@@ -316,10 +435,47 @@ make_opt_a <- function(series_name, title, color) {
       )
     )
 }
-plist_a <- lapply(1:5, function(i) make_opt_a(opt_a_series[i], opt_a_titles[i], opt_a_colors[i]))
-p2 <- subplot(plist_a, nrows = 5, margin = 0.02, shareX = TRUE, shareY = TRUE) %>%
+plist_dwelling <- lapply(1:5, function(i) make_opt_a(opt_a_series[i], opt_a_titles[i], opt_a_colors[i]))
+
+# Combined context chart: 1+2 person % (Silo B) and Non-resident % (Silo C) with direct labels
+mt_ctx <- master_table %>% filter(!is.na(shrinkage_index) | !is.na(non_resident_ratio))
+last_shrink <- mt_ctx %>% filter(!is.na(shrinkage_index)) %>% slice_max(Year, n = 1) %>% slice(1)
+last_nr     <- mt_ctx %>% filter(!is.na(non_resident_ratio)) %>% slice_max(Year, n = 1) %>% slice(1)
+p_combined <- plot_ly(mt_ctx) %>%
+  add_trace(x = ~Year, y = ~(shrinkage_index * 100), type = "scatter", mode = "lines",
+    name = "1- & 2-person households (%)", line = list(width = 2, color = "#4a90a4"),
+    hovertemplate = "<b>1+2 person %</b><br>Year: %{x}<br>% of households: %{y:.1f}%<extra></extra>") %>%
+  add_trace(x = ~Year, y = ~(non_resident_ratio * 100), type = "scatter", mode = "lines",
+    name = "Non-residents (% of population)", line = list(width = 2, color = "#c6531a"),
+    hovertemplate = "<b>Non-resident %</b><br>Year: %{x}<br>% of population: %{y:.1f}%<extra></extra>") %>%
   layout(
-    title = list(text = "(Improved Chart) Small multiples (same x, same y %)", x = 0.5, font = list(size = 14)),
+    title = list(text = "Context: 1+2 person households (%) & Non-residents (% pop.)", font = list(size = 12)),
+    xaxis = list(range = c(min_year, max_year), dtick = 5),
+    yaxis = list(title = "%", tickformat = ".1f"),
+    margin = list(t = 36, b = 32, l = 44, r = 80),
+    showlegend = FALSE,
+    annotations = list(
+      list(
+        x = last_shrink$Year, y = last_shrink$shrinkage_index * 100, text = "1+2 person",
+        showarrow = FALSE, xanchor = "left", xref = "x", yref = "y",
+        font = list(size = 10, color = "#4a90a4"), cliponaxis = FALSE
+      ),
+      list(
+        x = last_nr$Year, y = last_nr$non_resident_ratio * 100, text = "Non-Resident",
+        showarrow = FALSE, xanchor = "left", xref = "x", yref = "y",
+        font = list(size = 10, color = "#c6531a"), cliponaxis = FALSE
+      )
+    )
+  )
+
+# Order: HDB 3, HDB 4, HDB 5, Condo, [Combined] — Landed removed
+plist_all <- c(
+  plist_dwelling[1:4],           # HDB 3-room, HDB 4-room, HDB 5-room, Condo
+  list(p_combined)              # Combined 1+2 person & non-resident (direct labels)
+)
+p2 <- subplot(plist_all, nrows = 5, margin = 0.02, shareX = TRUE, shareY = FALSE) %>%
+  layout(
+    title = list(text = "(Improved Chart) Dwelling shares with Condo above context (same x)", x = 0.5, font = list(size = 14)),
     plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)"
   ) %>%
   config(displayModeBar = FALSE, displaylogo = FALSE) %>%
@@ -331,11 +487,12 @@ p2 <- subplot(plist_a, nrows = 5, margin = 0.02, shareX = TRUE, shareY = TRUE) %
         if (startYear > endYear) { alert('Start year must be less than or equal to end year'); return; }
         if (startYear < 1980 || endYear > 2024) { alert('Year range must be between 1980 and 2024'); return; }
         var dtick = (endYear - startYear) <= 5 ? 1 : ((endYear - startYear) <= 10 ? 2 : 5);
-        Plotly.relayout(el.id, {
-          'xaxis.autorange': false,
-          'xaxis.range': [startYear, endYear],
-          'xaxis.dtick': dtick
-        });
+        var updates = { 'xaxis.autorange': false, 'xaxis.range': [startYear, endYear], 'xaxis.dtick': dtick };
+        for (var i = 2; i <= 5; i++) {
+          updates['xaxis' + i + '.range'] = [startYear, endYear];
+          updates['xaxis' + i + '.dtick'] = dtick;
+        }
+        Plotly.relayout(el.id, updates);
       };
     }
   ")
@@ -410,17 +567,17 @@ The chart provides no horizontal or vertical gridlines, making it difficult for 
 
 The **Improved Chart (Small Multiples)** in this report implements the following improvements in response to the weaknesses of the original visualisation:
 
-**Small multiples (One Series Per Panel)**  
-Instead of plotting all six dwelling categories in a single chart, the improved chart uses five aligned panels—one for each of HDB 3-room, HDB 4-room, HDB 5-room, Condominiums, and Landed properties. Each panel has the same x-axis (Year) and the same y-axis (percent), so trends can be compared across panels without overlapping lines. This removes visual clutter and makes it easier to trace any single category over the full time span (Tufte's layering and separation).
+**Small multiples and combined context panel**  
+Instead of plotting all six dwelling categories in a single chart, the improved chart uses five panels: four for dwelling shares (HDB 3-room, HDB 4-room, HDB 5-room, Condo)—one series per panel—and one combined context chart showing 1+2 person households (%) and Non-Resident (% of population), with Condo placed directly above the combined chart. Each panel shares the same x-axis (Year) and uses percent on the y-axis where relevant, so trends can be compared across panels without overlapping lines. Landed properties are omitted to keep the focus on the main dwelling shift and context. This removes visual clutter and makes it easier to trace any single category over the full time span (Tufte's layering and separation).
 
 **Simplified line styles and coordinated colour palette**  
-All series use solid lines only (no dotted or dashed patterns), reducing the decoding effort that the original chart required. Dwelling types are differentiated by colour: shades of blue for public housing (HDB 3-, 4-, and 5-room) and warm colours (orange tones) for private housing (Condo, Landed). This improves distinguishability for screen and print and supports better accessibility than the original monochrome palette with pattern encoding.
+All series use solid lines only (no dotted or dashed patterns), reducing the decoding effort that the original chart required. Dwelling types are differentiated by colour: shades of blue for public housing (HDB 3-, 4-, and 5-room) and warm colours (orange) for private housing (Condo). The combined context chart uses teal for 1+2 person % and orange for Non-Resident %. This improves distinguishability for screen and print and supports better accessibility than the original monochrome palette with pattern encoding.
 
-**Direct labelling (No Separate Legend)**  
-Each panel has the series name (e.g. "HDB 3-room", "Condo") annotated directly at the end of the line, so the viewer does not need to cross-reference a legend. This reduces cognitive load and aligns with Tufte's recommendation to place labels on or adjacent to the data they describe.
+**Direct labelling (no separate legend)**  
+Each dwelling panel has the series name (e.g. "HDB 3-room", "Condo") annotated directly at the end of the line. The combined context panel uses direct labels "1+2 person" and "Non-Resident" at the end of each line, so the viewer does not need to cross-reference a legend. This reduces cognitive load and aligns with Tufte's recommendation to place labels on or adjacent to the data they describe.
 
 **Interactive date-range filter**  
-Start Year and End Year controls (with an "Update Range" button and Enter-key support) allow the user to focus on a chosen time window (e.g. 1995–2005 or 2010–2024). Narrowing the range makes it easier to read values and compare series without relying on gridlines, and the same filter applies across all five panels so comparison remains consistent.
+Start Year and End Year controls (with an "Update Range" button and Enter-key support) allow the user to focus on a chosen time window (e.g. 1995–2005 or 2010–2024). Narrowing the range makes it easier to read values and compare series without relying on gridlines, and the same filter applies across all five panels (four dwelling + one combined context) so comparison remains consistent.
 
 **Contextual annotations**  
 Contextual annotations (e.g. light vertical event markers or short text for policy or supply milestones) could be added to explain *why* certain trends occur—for example, why the HDB 3-room share fell sharply in the 90s. See [HDB: Design through the decades](https://www.hdb.gov.sg/about-us/history/design-through-the-decades) for candidate milestones.
@@ -429,7 +586,7 @@ Contextual annotations (e.g. light vertical event markers or short text for poli
 
 The original visualisation attributes the shift in housing composition primarily to shrinking household sizes. While this is supported by the data, other contributing factors include changes in the non-resident population and growth in household incomes. The data sources below are used to contextualise these factors.
 
-The report uses the following CSV files: `data.csv` (dwelling-type counts), `Resident Household by household.csv`, `Living Alone Married without Ch.csv`, `Composition of Non-Residents.csv`, `hdb_resale_prices.csv`, and `Gross monthly income.csv`. Percentages in the charts are computed relative to total resident households for each year. Full citations: Singapore Department of Statistics (SingStat), HDB sample household survey, Housing & Development Board (HDB) Resale Flat Prices dataset, and MOM Labour Force Report.
+The report uses the following CSV files for the pipeline and improved chart: `data.csv` (dwelling-type counts), `Resident Household by household.csv`, `Living Alone Married without Ch.csv`, `Composition of Non-Residents.csv`, and `Gross monthly income.csv`. (The HDB Resale Flat Prices dataset is cited in the literature but not integrated in the current pipeline.) Percentages in the charts are computed relative to total resident households for each year. Full citations: Singapore Department of Statistics (SingStat), HDB sample household survey, and MOM Labour Force Report.
 
 
 ## Population Dynamics {#sec-data-population}
@@ -441,9 +598,8 @@ This refers to the shift from collective family structures to smaller living arr
 Referring to [SingStat Table M810371](https://tablebuilder.singstat.gov.sg/table/TS/M810371), we can notice a largely increasing trend in 2-person & 1-person households, whereas the number of 5-person households has been generally decreasing over the years.
 
 ![SingStat Table M810371](images/m810371.png)
-In another news article [2], findings show that the share of one-person homes rose to 15.6 per cent in 2023/2024, up from 12.6 per cent in 2018 and 7.1 per cent in 2003, according to the Housing and Development Board's (HDB) sample household survey released on Thursday (Nov 27). These findings reflect societal shifts such as an ageing population and changing housing preferences, said HDB in the 12th edition of the survey since it started in 1968 ([CNA: One-person homes](https://www.channelnewsasia.com/singapore/proportion-one-person-homes-up-shrinking-household-sizes-hdb-survey-5491071))
 
-In another news article [2], findings have shown that the share of one-person homes rose to 15.6 per cent in 2023/2024, up from 12.6 per cent in 2018 and 7.1 per cent in 2003, according to the Housing and Development Board's (HDB) sample household survey released on Thursday (Nov 27). These findings reflect societal shifts such as an ageing population and changing housing preferences, said HDB in the 12th edition of the survey since it started in 1968 ([CNA: One-person homes](https://www.channelnewsasia.com/singapore/proportion-one-person-homes-up-shrinking-household-sizes-hdb-survey-5491071))
+In another news article [2], findings show that the share of one-person homes rose to 15.6 per cent in 2023/2024, up from 12.6 per cent in 2018 and 7.1 per cent in 2003, according to the Housing and Development Board's (HDB) sample household survey released on Thursday (Nov 27). These findings reflect societal shifts such as an ageing population and changing housing preferences, said HDB in the 12th edition of the survey since it started in 1968 ([CNA: One-person homes](https://www.channelnewsasia.com/singapore/proportion-one-person-homes-up-shrinking-household-sizes-hdb-survey-5491071)).
 
 #### Rising Trend of Living Alone / Married without Children
 
@@ -476,7 +632,7 @@ Additionally, as we refer to the indicator on population growth (per cent), we o
 
 ![SingStat Table M810001 — Population growth (Part 3)](images/m810001_part3.png)
 
-![SingStat Table M810651 Part 4](images/m810001_part4.png)
+![SingStat Table M810001 — Part 4](images/m810001_part4.png)
 
 ## Finance Growth {#sec-data-finance}
 
@@ -759,13 +915,12 @@ The following **ETL summary** maps the same pipeline to Extract / Transform / Lo
 ## Transform {#sec-workflow-transform}
 
 - **Phase 2:** Pivot all wide silos to long (`Year`, series identifier, `Value`). Standardise series names (`trimws()`, recode to canonical labels). Compute **housing shares** (count / Resident Households × 100). Use `interpolate_gaps()` for sources with missing years (e.g. Living Alone). Exclude *Total HDB Dwellings* and *Resident Households* from dwelling-type shares.
-- **Phase 3:** **Shrinkage index** from Silo B (1- + 2-person) / total; **married_no_children_pct** from Living Alone file counts / total households. **NR impact:** annual % change of non-resident ratio; flag **high_external_demand** when growth > 3%. **Affordability ratio:** median_income_index / condo_price_index.
-**Floor-area index** from Silo E: mean `floor_area_sqm` per lease year, indexed to earliest year (= 100); flag **supply_compression** when year-over-year decline > 2%. **Small-flat supply share:** proportion of 1-, 2-, and 3-ROOM transactions per lease year.
+- **Phase 3:** **Shrinkage index** from Silo B (1- + 2-person) / total; **married_no_children_pct** from Living Alone file counts / total households. **NR impact:** annual % change of non-resident ratio; flag **high_external_demand** when growth > 3%. **Affordability ratio:** median_income_index / condo_price_index. (Silo E—e.g. floor-area index, small-flat supply share—is not included in the current pipeline.)
 
 ## Load / Consume {#sec-workflow-load}
 
 - **Load:** Phase 4 builds the **Master Analytical Table** (`master_table`) in memory via `left_join(..., by = "Year")` of housing shares (wide), Silo B/C/D engineered columns; one row per year.
-- **Consume:** The report shows the master schema and head/tail in a kable table. Charts use the long **housing shares** from Phase 2 (same denominator per year). Report is rendered to a single HTML (Quarto, `embed-resources: true`); charts are **plotly** (original: one trace per series; improved: 5-panel small multiples with direct labels and date filter). Dependencies: `tidyverse`, `plotly`, `htmlwidgets`, `knitr`, Quarto.
+- **Consume:** The report shows the master schema and head/tail in a kable table. Charts use the long **housing shares** from Phase 2 (same denominator per year). Report is rendered to a single HTML (Quarto, `embed-resources: true`); charts are **plotly** (original: one trace per series; improved: 5 panels—4 dwelling small multiples and 1 combined context chart—with direct labels and date filter). Dependencies: `tidyverse`, `plotly`, `htmlwidgets`, `knitr`, Quarto.
 
 ## Quality checks {#sec-workflow-quality}
 
@@ -778,14 +933,14 @@ The following **ETL summary** maps the same pipeline to Extract / Transform / Lo
 | Admin Number | Name | Task |
 |------|--------|--------|
 | 2402319 | SIM EN QI | • Data Sources<br> |
-| 2402844 | CORVAN CHUA | • <br>• <br> |
+| 2402844 | CORVAN CHUA | • Improved Chart & Data Integration<br>• Created Draft Report<br> |
 | 2502218 | SOH JIA HUI (SU JIAHUI) | • <br>• <br>|
 | 2501484 | AVRIL LEONG KE EN | • <br>• <br> |
 | 2501222 | KOK YI HENG | • |
 
 # Summary {#sec-summary}
 
-This report critically examines a multi-series time-series line chart published by Singapore Department of Statistics, which tracks the proportion of resident households across five dwelling types from 1990 to 2024. The analysis identifies key structural shifts in Singapore's housing composition, where most notably, a decline in HDB flat residency and a steady rise in condominium living and attributes these changes to a convergence of demographic, population, and economic factors: shrinking household sizes, a growing share of singles and married-without-children households, an expanding non-resident population, and rising gross monthly incomes. While the original chart effectively conveys long-term trends, it suffers from visual clutter, poor accessibility, and an over-reliance on dash-pattern encoding. In response, an improved visualisation using five small-multiple panels with a shared axis, coordinated colour palette, direct labelling, and an interactive date-range filter is proposed to enhance clarity and analytical depth. Supporting this redesign, a four-phase data engineering pipeline integrates five CSV sources into a Master Analytical Table, incorporating engineered features such as a Shrinkage Index, Non-Resident Impact Factor, and Affordability Ratio to provide a more comprehensive, multi-dimensional view of the forces shaping Singapore's evolving housing landscape.
+This report critically examines a multi-series time-series line chart published by Singapore Department of Statistics, which tracks the proportion of resident households across five dwelling types from 1990 to 2024. The analysis identifies key structural shifts in Singapore's housing composition, where most notably, a decline in HDB flat residency and a steady rise in condominium living, and attributes these changes to a convergence of demographic, population, and economic factors: shrinking household sizes, a growing share of singles and married-without-children households, an expanding non-resident population, and rising gross monthly incomes. While the original chart effectively conveys long-term trends, it suffers from visual clutter, poor accessibility, and an over-reliance on dash-pattern encoding. In response, an improved visualisation using five panels (four dwelling-type small multiples and one combined context chart for 1+2 person % and Non-Resident %), with direct labels and an interactive date-range filter, is proposed to enhance clarity and analytical depth. Supporting this redesign, a four-phase data engineering pipeline integrates five CSV sources into a Master Analytical Table, incorporating engineered features such as a Shrinkage Index, Non-Resident Impact Factor, and Affordability Ratio to provide a more comprehensive, multi-dimensional view of the forces shaping Singapore's evolving housing landscape.
 
 # References {#sec-references}
 - [1] [CNA — Housing demand, population, URA master plan](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401)
