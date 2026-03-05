@@ -427,28 +427,26 @@ Contextual annotations (e.g. light vertical event markers or short text for poli
 
 # Data Sources {#sec-data-sources}
 
-From the original visualization, it is noted that the analysis indicates that the move towards private housing + 1 & 2 room flats arose mainly from household size shrinking, instead of a decline in the overall supply of public housing, highlighting shifts in demographic structures in Singapore. While this is true, it is to note that there are several factors beyond what is shown in the original visualization that also contribute to such shifts, some of which include broader population dynamics, supply-side structural changes as well as financial growth. As such, we sought to integrate these factors as part of the improvement to the original diagram in order to produce a more well-rounded and in-depth visualization that can provide more value and clarity to readers.
-
-Alternative Ver.? : The original visualisation attributes the shift in housing composition primarily to shrinking household sizes. While this is supported by the data, other contributing factors include changes in the non-resident population and growth in household incomes. The data sources below are used to contextualise these factors.
+From the original visualization, it is noted that the analysis indicates that the move towards private housing + 1 & 2 room flats arose mainly from household size shrinking, instead of a decline in the overall supply of public housing, highlighting shifts in demographic structures in Singapore. While this is true, it is to note that there are several factors beyond what is shown in the original visualization that also contribute to such shifts, some of which include broader population dynamics, supply-side structural changes as well as financial growth. As such, we sought to integrate these factors as part of the improvement to the original diagram in order to produce a more well-rounded and in-depth visualization that can provide more value and clarity to readers. The data sources below are used to contextualize these factors.
 
 ## Population Dynamics {#sec-data-population}
 
 ### Household Sizes {#sec-data-household-sizes}
 
-This refers to the shift from collective family structures to smaller living arrangements. Main indicators include: **Shrinking Households**. Findings have shown [x]: experts interviewed by CNA agreed that housing demand remains elevated despite a falling birth rate, largely because of demographic and lifestyle changes. One major trend, they said, is a “significant mindset shift” towards forming smaller or single-person households ([CNA: Housing demand](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401)).
+This refers to the shift from collective family structures to smaller living arrangements. Main indicators include: **Shrinking Households**. Findings have shown [1]: experts interviewed by CNA agreed that housing demand remains elevated despite a falling birth rate, largely because of demographic and lifestyle changes. One major trend, they said, is a “significant mindset shift” towards forming smaller or single-person households ([CNA: Housing demand](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401)).
 
-Referring to SingStat Table M810371, we can notice a largely increasing trend in 2-person & 1-person households, whereas the number of 5-person households has been generally decreasing over the years.
+Referring to [SingStat Table M810371](https://tablebuilder.singstat.gov.sg/table/TS/M810371), we can notice a largely increasing trend in 2-person & 1-person households, whereas the number of 5-person households has been generally decreasing over the years.
 
 ![SingStat Table M810371](images/m810371.png)
 
-In another news article [y], findings have shown that the share of one-person homes rose to 15.6 per cent in 2023/2024, up from 12.6 per cent in 2018 and 7.1 per cent in 2003, according to the Housing and Development Board's (HDB) sample household survey released on Thursday (Nov 27). These findings reflect societal shifts such as an ageing population and changing housing preferences, said HDB in the 12th edition of the survey since it started in 1968 ([CNA: One-person homes](https://www.channelnewsasia.com/singapore/proportion-one-person-homes-up-shrinking-household-sizes-hdb-survey-5491071))
+In another news article [2], findings have shown that the share of one-person homes rose to 15.6 per cent in 2023/2024, up from 12.6 per cent in 2018 and 7.1 per cent in 2003, according to the Housing and Development Board's (HDB) sample household survey released on Thursday (Nov 27). These findings reflect societal shifts such as an ageing population and changing housing preferences, said HDB in the 12th edition of the survey since it started in 1968 ([CNA: One-person homes](https://www.channelnewsasia.com/singapore/proportion-one-person-homes-up-shrinking-household-sizes-hdb-survey-5491071))
 
 #### Rising Trend of Living Alone/ Married without Children
 
 The trend in shrinking households can be further explained through the growing demographic trends in households of singles living alone or rather those that are married without children. \
 \
 \
-As mentioned by this article [z], it is found that more people, especially working professionals who are not planning for a family at the moment, are drawn towards smaller units which are more common within condo developments as property developers are cutting up condominium developments into a bigger number of small units to keep it affordable for potential buyers ([Straits Times: Smaller homes](https://www.straitstimes.com/life/youre-not-imagining-it-singapore-homes-are-getting-smaller)). 
+As mentioned by this article [3], it is found that more people, especially working professionals who are not planning for a family at the moment, are drawn towards smaller units which are more common within condo developments as property developers are cutting up condominium developments into a bigger number of small units to keep it affordable for potential buyers ([Straits Times: Smaller homes](https://www.straitstimes.com/life/youre-not-imagining-it-singapore-homes-are-getting-smaller)). 
 \
 \
 This also arose due to larger homes being priced at a premium which can only be afforded by high-income households, which are usually unlikely to be single-person households. 
@@ -457,13 +455,13 @@ This also arose due to larger homes being priced at a premium which can only be 
 As such, the alternative, as done by one such professional Mr Jon Phua, has been to purchase a one-bedroom shoebox condominium unit in Hougang, which allowed him to work away from the compact confines of his parents' 4-room HDB flat, as well as not having to wait until he turned 35 to get his own HDB flat. As such, many people share similar sentiments to Mr Jon Phua and it is estimated that "the number of singles, seniors and households with one or no child is likely to increase in the years ahead," according to Mr Lee Sze Teck, senior director of data analytics at real estate agency Huttons Asia. 
 \
 \
-Adding on, we can refer to SingStat Table M810651, where we can notice a rising trend of resident households living alone as well as those married without children.
+Adding on, we can refer to [SingStat Table M810651](https://tablebuilder.singstat.gov.sg/table/TS/M810651), where we can notice a rising trend of resident households living alone as well as those married without children.
 
 ![SingStat Table M810651](images/m810651.png)
 
 ### Composition of Non-Residents {#sec-data-non-residents}
 
-This refers to the growth in the composition of non-residents in Singapore, which has largely contributed to that of the growth of Singapore’s entire population. It has been noted by Dr Woo Jun Jie, senior lecturer at the Lee Kuan Yew School of Public Policy, who researches urban governance [x], that this growth has contributed largely in driving demand for private housing, including those for purchase and rental ([CNA: Housing demand](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401)). Referring to SingStat Table M810001, we can observe a jump in the non-resident population from 2021 to 2025.
+This refers to the growth in the composition of non-residents in Singapore, which has largely contributed to that of the growth of Singapore’s entire population. It has been noted by Dr Woo Jun Jie, senior lecturer at the Lee Kuan Yew School of Public Policy, who researches urban governance [1], that this growth has contributed largely in driving demand for private housing, including those for purchase and rental ([CNA: Housing demand](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401)). Referring to [SingStat Table M810001](https://tablebuilder.singstat.gov.sg/table/TS/M810001), we can observe a jump in the non-resident population from 2021 to 2025.
 
 ![SingStat Table M810001 — Non-resident population (Part 1)](images/m810001.png)
 
@@ -496,9 +494,9 @@ Four data silos are loaded and mapped to a common schema.
 
 | Silo | Source | Action |
 |------|--------|--------|
-| **A (Core Housing)** | SingStat M810351 (Resident Households by Dwelling)| Convert absolute counts to **percentage shares** to match the original visualisation. |
-| **B (Demographics)** | SingStat M810371 (Household Size) & M810651 (Living Arrangements) | Extract **"1-person"** and **"Married w/o Children"** as new feature columns. |
-| **C (Population)** | SingStat M810001 (Residency Status) | Calculate the **Non-Resident Ratio** (Non-Residents / Total Population). |
+| **A (Core Housing)** | [SingStat Table M810351](https://tablebuilder.singstat.gov.sg/table/TS/M810351) (Resident Households by Dwelling)| Convert absolute counts to **percentage shares** to match the original visualisation. |
+| **B (Demographics)** | [SingStat Table M810371](https://tablebuilder.singstat.gov.sg/table/TS/M810371) (Household Size) & [SingStat Table M810651](https://tablebuilder.singstat.gov.sg/table/TS/M810651) (Living Arrangements) | Extract **"1-person"** and **"Married w/o Children"** as new feature columns. |
+| **C (Population)** | [SingStat Table M810001](https://tablebuilder.singstat.gov.sg/table/TS/M810001) (Residency Status) | Calculate the **Non-Resident Ratio** (Non-Residents / Total Population). |
 | **D (Economics)** | MOM Labour Force Report 2025 | Extract **Median Monthly Income** and deflate using CPI to get **Real Income Growth**. |
 
 ### Silo A: Core Housing
@@ -783,7 +781,7 @@ The following **ETL summary** maps the same pipeline to Extract / Transform / Lo
 
 | Admin Number | Name | Task |
 |------|--------|--------|
-| 2402319 | SIM EN QI | • <br>• <br> |
+| 2402319 | SIM EN QI | • Data Sources<br> |
 | 2402844 | CORVAN CHUA | • <br>• <br> |
 | 2502218 | SOH JIA HUI (SU JIAHUI) | • <br>• <br>|
 | 2501484 | AVRIL LEONG KE EN | • <br>• <br> |
@@ -795,11 +793,22 @@ This report showed an original multivariate time-series chart of dwelling-type p
 
 # References {#sec-references}
 
-- [CNA — Housing demand, population, URA master plan](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401) [x]
-- [CNA — Proportion of one-person homes up, shrinking household sizes (HDB survey)](https://www.channelnewsasia.com/singapore/proportion-one-person-homes-up-shrinking-household-sizes-hdb-survey-5491071) [y]
-- [Straits Times — Singapore homes are getting smaller](https://www.straitstimes.com/life/youre-not-imagining-it-singapore-homes-are-getting-smaller) [z]
+- [CNA — Housing demand, population, URA master plan](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401) [1]
+- [CNA — Proportion of one-person homes up, shrinking household sizes (HDB survey)](https://www.channelnewsasia.com/singapore/proportion-one-person-homes-up-shrinking-household-sizes-hdb-survey-5491071) [2]
+- [Straits Times — Singapore homes are getting smaller](https://www.straitstimes.com/life/youre-not-imagining-it-singapore-homes-are-getting-smaller) [3]
 - [HDB — Design through the decades](https://www.hdb.gov.sg/about-us/history/design-through-the-decades)
 - [MOM — Labour Force in Singapore 2025 (Dashboard)](https://stats.mom.gov.sg/Pages/Dashboard-Labour-Force-in-Singapore-2025.aspx)
 - [MOM — Labour Force in Singapore 2025 (Report)](https://stats.mom.gov.sg/Pages/Labour-Force-In-Singapore-2025.aspx)
 - Singapore Department of Statistics, *Population Trends 2025* (PDF).
-- SingStat tables: M810351 (Resident Households by Dwelling), M810371 (Household Size), M810651 (Living Arrangements), M810001 (Residency / Composition of Non-Residents).
+
+- Singapore Department of Statistics. (Household Size)
+[SingStat Table M810371](https://tablebuilder.singstat.gov.sg/table/TS/M810371)
+
+- Singapore Department of Statistics. (Living Arrangements) 
+[SingStat Table M810651](https://tablebuilder.singstat.gov.sg/table/TS/M810651)
+
+- Singapore Department of Statistics. (Residency/ Composition of Non-Residents)
+[SingStat Table M810001](https://tablebuilder.singstat.gov.sg/table/TS/M810001)
+
+- Singapore Department of Statistics.(Resident Households by Dwelling). 
+[SingStat Table M810351](https://tablebuilder.singstat.gov.sg/table/TS/M810351)
