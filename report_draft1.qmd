@@ -3,7 +3,7 @@ title: "Proportion of Resident Households by Type of Dwellings"
 subtitle: "AAI1001 — Data Engineering and Visualization<br>Project Proposal Submission"
 author:
   name: "Lab P1 - Group 18"
-date: "2026-03-05"
+date: "2026-03-06"
 date-format: "dddd MMM DD, YYYY"
 
 format:
@@ -42,11 +42,9 @@ The shift in housing composition reflects structural demographic changes, partic
 \
 As such, this project aims to critically analyse our chosen complex online data visualisation related to the topic, systematically gather and engineer at least four-dimensional supporting data with clear documentation and reproducible code, and redesign the original visualisation to improve its clarity and analytical depth.
 
-## Understanding the chosen visualisation {#sec-understanding}
+## Understanding The Chosen Visualisation {#sec-understanding}
 
-**Figure 1: Proportion of Resident Households by Selected Type of Dwelling**
-
-![Proportion of Resident Households by Selected Type of Dwelling](images/figure_1.png)
+![Figure 1 : Proportion of Resident Households by Selected Type of Dwelling](images/figure_1.png)
 
 The original visualization is a multi-series time-series line chart displaying the proportion (in percent) of resident households living in: HDB 4-room flats; HDB 5-room / Executive flats; HDB 3-room flats; Condominiums and other apartments; Landed properties. The y-axis represents the percentage share of households, while the x-axis represents time (1990–2024).
 
@@ -221,7 +219,7 @@ for (i in seq_along(series_names)) {
 p <- p %>%
   layout(
     title = list(
-      text = "(Original Chart) Proportion of Resident Households by Selected Type of Dwellings",
+      text = "Proportion of Resident Households by Selected Type of Dwellings",
       x = 0.5,
       font = list(size = 18, color = "#333")
     ),
@@ -274,8 +272,7 @@ p <- p %>%
 p
 ```
 
-The story this chart tells is one of gradual structural change in Singapore's housing composition. The overall proportion of resident households in HDB flats declined from 80.4% in 2014 to 77.4% in 2024, while condominium and apartment living rose from 13.5% to 17.7% over the same period. This shift appears to be driven less by a reduction in public housing supply and more by demographic changes, particularly shrinking household sizes and changing living arrangements, as documented in the Singapore Department of Statistics Population Trends 2025 report.
-</div>
+The story this chart tells is a gradual structural change in Singapore's housing composition. The overall proportion of resident households in HDB flats declined from 80.4% in 2014 to 77.4% in 2024, while condominium and apartment living rose from 13.5% to 17.7% over the same period. This shift appears to be driven less by a reduction in public housing supply and more by demographic changes, particularly shrinking household sizes and changing living arrangements, as documented in the Singapore Department of Statistics Population Trends 2025 report.
 
 ```{r run-pipeline, include: false}
 # Run pipeline early so master_table is available for the improved chart (Phases 1-4).
@@ -418,19 +415,27 @@ opt_a_colors <- c("#2171b5", "#4292c6", "#6baed6", "#c6531a", "#e6864a")
 make_opt_a <- function(series_name, title, color) {
   d <- data_long %>% filter(Series == series_name)
   last_pt <- d %>% slice_max(Year, n = 1) %>% slice(1)
-  plot_ly(d, x = ~Year, y = ~Percent, type = "scatter", mode = "lines", line = list(width = 2, color = color),
+  plot_ly(d, x = ~Year, y = ~Percent, type = "scatter", mode = "lines",
+    line = list(width = 2, color = color),
     hovertemplate = paste0("<b>", title, "</b><br>Year: %{x}<br>Percent: %{y:.2f}%<extra></extra>")) %>%
     layout(
       title = list(text = title, font = list(size = 12)),
       xaxis = list(range = c(min_year, max_year), dtick = 5),
       yaxis = list(title = "%", tickformat = ".1f"),
-      margin = list(t = 36, b = 32, l = 44, r = 80),
+      margin = list(t = 36, b = 32, l = 44, r = 16),  # reduced right margin — label goes inward
       showlegend = FALSE,
       annotations = list(
         list(
-          x = last_pt$Year, y = last_pt$Percent, text = title,
-          showarrow = FALSE, xanchor = "left", xref = "x", yref = "y",
-          font = list(size = 10, color = color), cliponaxis = FALSE
+          x      = last_pt$Year,
+          y      = last_pt$Percent,
+          text   = title,
+          showarrow  = FALSE,
+          xanchor    = "right",
+          yanchor    = "bottom",
+          xref       = "x",
+          yref       = "y",
+          font   = list(size = 10, color = color),
+          cliponaxis = TRUE
         )
       )
     )
@@ -442,28 +447,41 @@ mt_ctx <- master_table %>% filter(!is.na(shrinkage_index) | !is.na(non_resident_
 last_shrink <- mt_ctx %>% filter(!is.na(shrinkage_index)) %>% slice_max(Year, n = 1) %>% slice(1)
 last_nr     <- mt_ctx %>% filter(!is.na(non_resident_ratio)) %>% slice_max(Year, n = 1) %>% slice(1)
 p_combined <- plot_ly(mt_ctx) %>%
-  add_trace(x = ~Year, y = ~(shrinkage_index * 100), type = "scatter", mode = "lines",
-    name = "1- & 2-person households (%)", line = list(width = 2, color = "#4a90a4"),
-    hovertemplate = "<b>1+2 person %</b><br>Year: %{x}<br>% of households: %{y:.1f}%<extra></extra>") %>%
-  add_trace(x = ~Year, y = ~(non_resident_ratio * 100), type = "scatter", mode = "lines",
-    name = "Non-residents (% of population)", line = list(width = 2, color = "#c6531a"),
-    hovertemplate = "<b>Non-resident %</b><br>Year: %{x}<br>% of population: %{y:.1f}%<extra></extra>") %>%
+  add_trace(x = ~Year, y = ~(shrinkage_index * 100),
+    type = "scatter", mode = "lines",
+    name = "1- & 2-person households (%)",
+    line = list(width = 2, color = "#4a90a4"),
+    hovertemplate = "<b>1+2 person %</b><br>Year: %{x}<br>% of households: %{y:.1f}%<extra></extra>"
+  ) %>%
+  add_trace(
+    x = ~Year, y = ~(non_resident_ratio * 100),
+    type = "scatter", mode = "lines",
+    name = "Non-residents (% of population)",
+    line = list(width = 2, color = "#c6531a"),
+    hovertemplate = "<b>Non-resident %</b><br>Year: %{x}<br>% of population: %{y:.1f}%<extra></extra>"
+  ) %>%
   layout(
-    title = list(text = "Context: 1+2 person households (%) & Non-residents (% pop.)", font = list(size = 12)),
-    xaxis = list(range = c(min_year, max_year), dtick = 5),
-    yaxis = list(title = "%", tickformat = ".1f"),
-    margin = list(t = 36, b = 32, l = 44, r = 80),
+    title  = list(text = "Context: 1+2 person households (%) & Non-residents (% pop.)", font = list(size = 12)),
+    xaxis  = list(range = c(min_year, max_year), dtick = 5),
+    yaxis  = list(title = "%", tickformat = ".1f"),
+    margin = list(t = 36, b = 32, l = 44, r = 16),
     showlegend = FALSE,
     annotations = list(
       list(
-        x = last_shrink$Year, y = last_shrink$shrinkage_index * 100, text = "1+2 person",
-        showarrow = FALSE, xanchor = "left", xref = "x", yref = "y",
-        font = list(size = 10, color = "#4a90a4"), cliponaxis = FALSE
+        x = last_shrink$Year, y = last_shrink$shrinkage_index * 100,
+        text = "1+2 person",
+        showarrow = FALSE, xanchor = "right", yanchor = "bottom",
+        xref = "x", yref = "y",
+        font = list(size = 10, color = "#4a90a4"),
+        cliponaxis = TRUE
       ),
       list(
-        x = last_nr$Year, y = last_nr$non_resident_ratio * 100, text = "Non-Resident",
-        showarrow = FALSE, xanchor = "left", xref = "x", yref = "y",
-        font = list(size = 10, color = "#c6531a"), cliponaxis = FALSE
+        x = last_nr$Year, y = last_nr$non_resident_ratio * 100,
+        text = "Non-Resident",
+        showarrow = FALSE, xanchor = "right", yanchor = "top",
+        xref = "x", yref = "y",
+        font = list(size = 10, color = "#c6531a"),
+        cliponaxis = TRUE
       )
     )
   )
@@ -487,12 +505,11 @@ p2 <- subplot(plist_all, nrows = 5, margin = 0.02, shareX = TRUE, shareY = FALSE
         if (startYear > endYear) { alert('Start year must be less than or equal to end year'); return; }
         if (startYear < 1980 || endYear > 2024) { alert('Year range must be between 1980 and 2024'); return; }
         var dtick = (endYear - startYear) <= 5 ? 1 : ((endYear - startYear) <= 10 ? 2 : 5);
-        var updates = { 'xaxis.autorange': false, 'xaxis.range': [startYear, endYear], 'xaxis.dtick': dtick };
-        for (var i = 2; i <= 5; i++) {
-          updates['xaxis' + i + '.range'] = [startYear, endYear];
-          updates['xaxis' + i + '.dtick'] = dtick;
-        }
-        Plotly.relayout(el.id, updates);
+        Plotly.relayout(el.id, {
+          'xaxis.autorange': false,
+          'xaxis.range': [startYear, endYear],
+          'xaxis.dtick': dtick
+        });
       };
     }
   ")
@@ -607,9 +624,7 @@ The trend in shrinking households can be further explained through the growing d
 
 As mentioned by this article [3], it is found that more people, especially working professionals who are not planning for a family at the moment, are drawn towards smaller units which are more common within condo developments as property developers are cutting up condominium developments into a bigger number of small units to keep it affordable for potential buyers ([Straits Times: Smaller homes](https://www.straitstimes.com/life/youre-not-imagining-it-singapore-homes-are-getting-smaller)). 
 
-
 This also arose due to larger homes being priced at a premium which can only be afforded by high-income households, which are usually unlikely to be single-person households. 
-
 
 As such, the alternative, as done by one such professional Mr Jon Phua, has been to purchase a one-bedroom shoebox condominium unit in Hougang, which allowed him to work away from the compact confines of his parents' 4-room HDB flat, as well as not having to wait until he turned 35 to get his own HDB flat. As such, many people share similar sentiments to Mr Jon Phua and it is estimated that "the number of singles, seniors and households with one or no child is likely to increase in the years ahead," according to Mr Lee Sze Teck, senior director of data analytics at real estate agency Huttons Asia. 
 
@@ -940,7 +955,7 @@ The following **ETL summary** maps the same pipeline to Extract / Transform / Lo
 
 # Summary {#sec-summary}
 
-This report critically examines a multi-series time-series line chart published by Singapore Department of Statistics, which tracks the proportion of resident households across five dwelling types from 1990 to 2024. The analysis identifies key structural shifts in Singapore's housing composition, where most notably, a decline in HDB flat residency and a steady rise in condominium living, and attributes these changes to a convergence of demographic, population, and economic factors: shrinking household sizes, a growing share of singles and married-without-children households, an expanding non-resident population, and rising gross monthly incomes. While the original chart effectively conveys long-term trends, it suffers from visual clutter, poor accessibility, and an over-reliance on dash-pattern encoding. In response, an improved visualisation using five panels (four dwelling-type small multiples and one combined context chart for 1+2 person % and Non-Resident %), with direct labels and an interactive date-range filter, is proposed to enhance clarity and analytical depth. Supporting this redesign, a four-phase data engineering pipeline integrates five CSV sources into a Master Analytical Table, incorporating engineered features such as a Shrinkage Index, Non-Resident Impact Factor, and Affordability Ratio to provide a more comprehensive, multi-dimensional view of the forces shaping Singapore's evolving housing landscape.
+This report examines a multi-series time-series line chart by the Singapore Department of Statistics tracking resident household proportions across five dwelling types from 1990 to 2024. Key shifts — including declining HDB flat residency and rising condominium living — are attributed to shrinking household sizes, a growing non-resident population, and rising household incomes. The original chart is critiqued for visual clutter and poor accessibility, and an improved visualisation using small multiples with direct labelling and an interactive date filter is proposed. A four-phase data engineering pipeline integrates five data sources into a Master Analytical Table, incorporating engineered features such as a Shrinkage Index, Non-Resident Impact Factor, and Affordability Ratio to support a more comprehensive analysis of Singapore's evolving housing landscape.
 
 # References {#sec-references}
 - [1] [CNA — Housing demand, population, URA master plan](https://www.channelnewsasia.com/singapore/housing-demand-population-ura-master-plan-5224401)
