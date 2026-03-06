@@ -982,11 +982,11 @@ The following table outlines the planned work distribution during the final pres
 
 | Admin Number | Name | Responsibilities |
 |------|--------|--------|
-| 2402319 | SIM EN QI | **Data Selection and Sources**: Present the supporting data silos chosen to contextualise and explain why each was relevant |
+| 2402319 | SIM EN QI | **Data Selection and Sources**: Present the supporting data silos chosen to contextualise and explain why each was relevant. |
 | 2402844 | CORVAN CHUA | **Data Engineering Workflow**: Present engineering pipeline on how all five CSVs were extracted and mapped through the phases. Show the master table schema and sample rows. |
-| 2502218 | SOH JIA HUI (SU JIAHUI) | **Critiques and Proposed Improvements**: Present the identified weaknesses of the original chart with reference to Tufte's principles |
-| 2501484 | AVRIL LEONG KE EN | **Insights and Analysis**: Interpret the findings from the master table, connecting the engineered variables: shrinkage index, non-resident ratio, affordability ratio |
-| 2501222 | KOK YI HENG | **Conclusion**: Consise Summary |
+| 2502218 | SOH JIA HUI (SU JIAHUI) | **Critiques and Proposed Improvements**: Present the identified weaknesses of the original chart with reference to Tufte's principles. |
+| 2501484 | AVRIL LEONG KE EN | **Insights and Analysis**: Interpret the findings from the master table, connecting the engineered variables: shrinkage index, non-resident ratio, affordability ratio. |
+| 2501222 | KOK YI HENG | **Conclusion**: Consise Summary. |
 
 : {tbl-colwidths="[30, 35, 90]"}
 
